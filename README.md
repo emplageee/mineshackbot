@@ -1,0 +1,2 @@
+# mineshackbot
+MinesHack BOT
