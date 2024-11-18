@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MinesHack BOT</title>
+  <style>
+    @font-face {
+      font-family: 'Cy Grotesk';
+      src: url('fonts/CyGrotesk-Regular.woff2') format('woff2'),
+           url('fonts/CyGrotesk-Regular.woff') format('woff'),
+           url('fonts/CyGrotesk-Regular.ttf') format('truetype');
+      font-weight: normal;
+      font-style: normal;
+    }
+
+    body {
+      font-family: 'Cy Grotesk', Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      background-color: #222;
+      color: #fff;
+      margin: 0;
+      padding: 20px;
+      box-sizing: border-box;
+    }
+
+    h1 {
+      font-size: 2em;
+      text-shadow: 0 0 10px #fff;
+      text-align: center;
+    }
+
+    .controls {
+      margin-bottom: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 100%;
+    }
+
+    .controls label {
+      font-size: 1.2em;
+      margin-bottom: 10px;
+    }
+
+    select {
+      padding: 12px;
+      font-size: 1em;
+      border: none;
+      background: #333;
+      color: #fff;
+      border-radius: 5px;
+      width: 100%;
+      max-width: 200px; /* Ограничение ширины для удобства */
+    }
+
+    .grid-container {
+      display: inline-block;
+      padding: 10px;
+      border-radius: 15px;
+      box-shadow: 0 0 30px 15px rgba(255, 200, 50, 0.3); /* Свечение вокруг */
+      background-color: #333; /* Темный фон */
+      margin-top: 10px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(5, 60px);
+      gap: 5px;
+    }
+
+    .cell {
+      width: 60px;
+      height: 60px;
+      background: url('cell.png') no-repeat center/cover;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      border-radius: 5px;
+    }
+
+    .cell.star {
+      animation: fadeIn 0.5s forwards;
+      background: url('star.png') no-repeat center/cover;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: scale(0.5);
+      }
+      to {
+        opacity: 1;
+        transform: scale(1);
+      }
+    }
+
+    button {
+      padding: 15px 30px;
+      font-size: 1.2em;
+      font-weight: bold;
+      color: #fff;
+      background: linear-gradient(45deg, #ff9800, #ff5722);
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      box-shadow: 0 0 20px #ff9800;
+      transition: transform 0.3s, box-shadow 0.3s;
+      margin-top: 40px;
+      width: 100%;
+      max-width: 250px; /* Ограничение ширины кнопки */
+    }
+
+    button:hover {
+      transform: scale(1.1);
+      box-shadow: 0 0 30px #ff5722;
+    }
+
+    button:active {
+      transform: scale(1.05);
+    }
+
+    @media (max-width: 600px) {
+      body {
+        padding: 15px;
+      }
+
+      h1 {
+        font-size: 1.8em;
+      }
+
+      .controls label {
+        font-size: 1em;
+      }
+
+      select {
+        padding: 10px;
+        font-size: 0.9em;
+        max-width: 180px; /* Уменьшаем максимальную ширину на мобильных */
+      }
+
+      .grid-container {
+        padding: 8px;
+      }
+
+      .grid {
+        grid-template-columns: repeat(5, 50px);
+        gap: 3px;
+      }
+
+      .cell {
+        width: 50px;
+        height: 50px;
+      }
+
+      button {
+        font-size: 1em;
+        padding: 12px 25px;
+        max-width: 220px; /* Уменьшаем ширину кнопки для мобильных */
+      }
+
+      .grid-container {
+        margin-top: 20px;
+      }
+    }
+
+    @media (max-width: 400px) {
+      h1 {
+        font-size: 1.5em;
+      }
+
+      .controls label {
+        font-size: 0.9em;
+      }
+
+      button {
+        font-size: 0.9em;
+        padding: 10px 20px;
+      }
+
+      select {
+        font-size: 0.8em;
+      }
+    }
+  </style>
+</head>
+<body>
+  <h1>MinesHack BOT</h1>
+  <div class="controls">
+    <label for="mines">Количество мин:</label>
+    <select id="mines">
+      <option value="1">1</option>
+      <option value="3">3</option>
+      <option value="5">5</option>
+      <option value="7">7</option>
+    </select>
+  </div>
+  <div class="grid-container">
+    <div class="grid" id="grid"></div>
+  </div>
+  <button id="generateSignal">Получить сигнал</button>
+
+  <script>
+    const grid = document.getElementById('grid');
+    const minesSelect = document.getElementById('mines');
+    const generateSignalButton = document.getElementById('generateSignal');
+
+    function createGrid() {
+      grid.innerHTML = '';
+      for (let i = 0; i < 25; i++) {
+        const cell = document.createElement('div');
+        cell.classList.add('cell');
+        grid.appendChild(cell);
+      }
+    }
+
+    async function generateSignal() {
+      createGrid();
+      const cells = document.querySelectorAll('.cell');
+      const mineCount = parseInt(minesSelect.value, 10);
+      let starsToPlace;
+
+      switch (mineCount) {
+        case 1:
+          starsToPlace = 10;
+          break;
+        case 3:
+          starsToPlace = 5;
+          break;
+        case 5:
+          starsToPlace = 4;
+          break;
+        case 7:
+          starsToPlace = 3;
+          break;
+        default:
+          starsToPlace = 0;
+      }
+
+      const starPositions = new Set();
+      while (starPositions.size < starsToPlace) {
+        const randomIndex = Math.floor(Math.random() * 25);
+        starPositions.add(randomIndex);
+      }
+
+      for (const index of starPositions) {
+        await new Promise(resolve => setTimeout(resolve, 800));
+        cells[index].classList.add('star');
+      }
+    }
+
+    createGrid();
+    generateSignalButton.addEventListener('click', generateSignal);
+  </script>
+</body>
+</html>
